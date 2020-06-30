@@ -25,10 +25,16 @@ public class ThreadUtil {
         }, name, 0);
     }
 
-    public static Thread createLoopThread(Runnable runnable, String name) {
+    public static Thread createLoopThread(RunnableCanException runnable, String name) {
         return createThread(() -> {
             while (true) {
-                runnable.run();
+                try {
+                    runnable.run();
+                } catch (InterruptedException e) {
+                    return;
+                } catch (Exception e) {
+                    ExceptionUtil.throwT(e);
+                }
             }
         }, name);
     }
@@ -43,5 +49,10 @@ public class ThreadUtil {
                 return createThread(r, prefix + aLong.incrementAndGet());
             }
         }, new ThreadPoolExecutor.CallerRunsPolicy());
+    }
+
+    @FunctionalInterface
+    public interface RunnableCanException {
+        void run() throws Exception;
     }
 }
