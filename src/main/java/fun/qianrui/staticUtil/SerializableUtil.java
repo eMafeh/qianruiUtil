@@ -1,6 +1,7 @@
 package fun.qianrui.staticUtil;
 
 import java.io.*;
+import java.util.zip.*;
 
 /**
  * @author 88382571
@@ -32,6 +33,45 @@ public class SerializableUtil {
             }
         } catch (IOException | ClassNotFoundException e) {
             return ExceptionUtil.throwT(e);
+        }
+    }
+
+    public static byte[] zip(byte[] bytes, int level) {
+        Deflater deflater = new Deflater(level);
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            deflater.setInput(bytes);
+            deflater.finish();
+            byte[] buffer = new byte[1 << 20];
+            int n;
+            while ((n = deflater.deflate(buffer)) >= 0) {
+                out.write(buffer, 0, n);
+            }
+            return out.toByteArray();
+        } catch (IOException e) {
+            return ExceptionUtil.throwT(e);
+        } finally {
+            deflater.end();
+        }
+    }
+
+    public static byte[] zip(byte[] bytes) {
+        return zip(bytes, 9);
+    }
+
+    public static byte[] unZip(byte[] bytes) {
+        Inflater inflater = new Inflater();
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            inflater.setInput(bytes);
+            byte[] buffer = new byte[1 << 20];
+            int n;
+            while ((n = inflater.inflate(buffer)) >= 0) {
+                out.write(buffer, 0, n);
+            }
+            return out.toByteArray();
+        } catch (IOException | DataFormatException e) {
+            return ExceptionUtil.throwT(e);
+        } finally {
+            inflater.end();
         }
     }
 }
