@@ -12,7 +12,7 @@ public class DestroyedUtil {
 
     static {
         Runtime.getRuntime()
-                .addShutdownHook(ThreadUtil.createThread(() -> RUNNABLE_LIST.forEach(Runnable::run), "thread-destroyed-task"));
+                .addShutdownHook(ThreadUtil.createThread("thread-destroyed-task", () -> RUNNABLE_LIST.forEach(Runnable::run)));
     }
 
     public static void addListener(Runnable runnable) {

@@ -12,31 +12,29 @@ public class ThreadUtil {
             .getThreadGroup() : System.getSecurityManager()
             .getThreadGroup();
 
-    public static Thread createThread(Runnable runnable, String name) {
+    public static Thread createThread(String name, RunnableCanException runnable) {
         return new Thread(GROUP, () -> {
-            System.out.println(Thread.currentThread()
-                    .getName() + " is start");
+            System.out.println("thread is start\"" + Thread.currentThread()
+                    .getName() + "\" ");
+            final long start = System.currentTimeMillis();
             try {
                 runnable.run();
+            } catch (InterruptedException e) {
+                //
+            } catch (Exception e) {
+                ExceptionUtil.throwT(e);
             } finally {
-                System.out.println(Thread.currentThread()
-                        .getName() + " is end");
+                System.out.println("thread is end\"" + Thread.currentThread()
+                        .getName() + "\" " + DateUtil.format("yyyy-MM-dd HH:mm", start)
+                        + "-" + DateUtil.format("yyyy-MM-dd HH:mm", System.currentTimeMillis()));
             }
         }, name, 0);
     }
 
-    public static Thread createLoopThread(RunnableCanException runnable, String name) {
-        return createThread(() -> {
-            while (true) {
-                try {
-                    runnable.run();
-                } catch (InterruptedException e) {
-                    return;
-                } catch (Exception e) {
-                    ExceptionUtil.throwT(e);
-                }
-            }
-        }, name);
+    public static Thread createLoopThread(String name, RunnableCanException runnable) {
+        return createThread(name, () -> {
+            while (true) runnable.run();
+        });
     }
 
     public static ThreadPoolExecutor createPool(int corePoolSize, int maximumPoolSize, String prefix) {
@@ -46,7 +44,7 @@ public class ThreadUtil {
 
             @Override
             public Thread newThread(Runnable r) {
-                return createThread(r, prefix + aLong.incrementAndGet());
+                return createThread(prefix + aLong.incrementAndGet(), r::run);
             }
         }, new ThreadPoolExecutor.CallerRunsPolicy());
     }

@@ -43,7 +43,7 @@ public class SerializableUtil {
             deflater.finish();
             byte[] buffer = new byte[1 << 20];
             int n;
-            while ((n = deflater.deflate(buffer)) >= 0) {
+            while ((n = deflater.deflate(buffer)) != 0) {
                 out.write(buffer, 0, n);
             }
             return out.toByteArray();
@@ -64,7 +64,7 @@ public class SerializableUtil {
             inflater.setInput(bytes);
             byte[] buffer = new byte[1 << 20];
             int n;
-            while ((n = inflater.inflate(buffer)) >= 0) {
+            while ((n = inflater.inflate(buffer)) != 0) {
                 out.write(buffer, 0, n);
             }
             return out.toByteArray();

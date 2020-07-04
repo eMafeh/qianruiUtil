@@ -2,9 +2,9 @@ package fun.qianrui.staticUtil;
 
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.*;
-import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -13,26 +13,34 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @SuppressWarnings("all")
 public class FileSystemCache {
+    public static final List<String> FILE_ENDS = new ArrayList<>(Arrays.asList("ts", "key", "jpg", "mp4", "m3u8"));
     private final ConcurrentHashMap<String, ConcurrentHashMap> CACHE;
     private static final ConcurrentHashMap<?, ?> END = new ConcurrentHashMap<>();
     public final String root;
 
-    public FileSystemCache(Path path) {
-        this(path.toFile());
+    public FileSystemCache(String file) {
+        this(new File(file));
     }
 
     public FileSystemCache(File root) {
         String tmp = root.toString();
         this.root = tmp.endsWith("\\") ? tmp : tmp + "\\";
         long l = System.currentTimeMillis();
-        CACHE = file(root);
-        System.out.println(root + " cache handler:" + (System.currentTimeMillis() - l));
+        final int[] num = new int[1];
+        final Thread loopThread = ThreadUtil.createLoopThread("FileSystemCache handler: " + root, () -> {
+            Thread.sleep(3000);
+            System.out.println(num[0]);
+        });
+        loopThread.setDaemon(true);
+        loopThread.start();
+        num[0]++;
+        CACHE = file(root, num);
+        loopThread.interrupt();
     }
 
 
-    private String[] check(File file) {
-        String s = file.toString()
-                .replaceAll("/", "\\");
+    private String[] check(String file) {
+        String s = file.replaceAll("/", "\\\\");
         ExceptionUtil.isTrue(s.startsWith(this.root));
         String[] split = s.substring(this.root.length())
                 .split("\\\\");
@@ -40,77 +48,65 @@ public class FileSystemCache {
         return split;
     }
 
-    public void add(Path path) {
-        add(path.toFile());
-    }
-
-    public boolean exist(Path path) {
-        return exist(path.toFile());
-    }
-
-    public void add(File file) {
-        String[] paths = check(file);
+    public void add(String file) {
+        String[] rotes = check(file);
         ConcurrentHashMap<String, ConcurrentHashMap> tmp = CACHE;
-        for (int i = 0, pathsLength = paths.length - 1; i < pathsLength; i++) {
-            String path = paths[i];
-            tmp = tmp.computeIfAbsent(path, k -> new ConcurrentHashMap<>());
+        for (int i = 0, l = rotes.length - 1; i < l; i++) {
+            String rote = rotes[i];
+            tmp = tmp.computeIfAbsent(rote, k -> new ConcurrentHashMap<>());
             ExceptionUtil.isTrue(tmp != END);
         }
-        tmp.put(paths[paths.length - 1], END);
+        tmp.put(rotes[rotes.length - 1], END);
     }
 
-    public boolean exist(File file) {
-        String[] paths = check(file);
+    public boolean exist(String file) {
+        String[] rotes = check(file);
         ConcurrentHashMap<String, ConcurrentHashMap> tmp = CACHE;
-        for (int i = 0, pathsLength = paths.length; i < pathsLength; i++) {
-            String path = paths[i];
-            tmp = tmp.get(path);
+        for (int i = 0, l = rotes.length; i < l; i++) {
+            String rote = rotes[i];
+            tmp = tmp.get(rote);
             if (tmp == null) return false;
         }
         return true;
     }
 
-    private static ConcurrentHashMap<String, ConcurrentHashMap> file(File file) {
-        File[] files = file.listFiles();
-        ConcurrentHashMap<String, ConcurrentHashMap> result = new ConcurrentHashMap<>();
-        if (files == null) return result;
-        for (File sub : files) {
-            result.put(sub.getName(), sub.isDirectory() ? file(sub) : END);
+    public boolean prefix(String file) {
+        String[] rotes = check(file);
+        ConcurrentHashMap<String, ConcurrentHashMap> tmp = CACHE;
+        for (int i = 0, l = rotes.length - 1; i < l; i++) {
+            String rote = rotes[i];
+            tmp = tmp.get(rote);
+            if (tmp == null) return false;
         }
-        return result;
+        for (String name : tmp.keySet()) {
+            if (name.startsWith(rotes[rotes.length - 1])) return true;
+        }
+        return false;
     }
 
-    //性能贼垃圾
-    private static void walkTree(Path path) throws IOException {
-        Files.walkFileTree(path, new FileVisitor<Path>() {
-            @Override
-            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-                return FileVisitResult.CONTINUE;
-            }
-
-            @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                return FileVisitResult.CONTINUE;
-            }
-
-            @Override
-            public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
-                return FileVisitResult.CONTINUE;
-            }
-
-            @Override
-            public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-                return FileVisitResult.CONTINUE;
-            }
-        });
+    private static ConcurrentHashMap<String, ConcurrentHashMap> file(File file, int[] num) {
+        final long l = System.currentTimeMillis();
+        File[] files = file.listFiles();
+        System.out.println((System.currentTimeMillis() - l) + " " + file);
+        final ConcurrentHashMap<String, ConcurrentHashMap> map = new ConcurrentHashMap<>();
+        if (files == null) return map;
+        for (File sub : files) {
+            num[0]++;
+            final String name = sub.getName();
+            final int i = name.lastIndexOf(".");
+            map.put(name, i < 0 || !FILE_ENDS.contains(name.substring(i + 1)) ? file(sub, num) : END);
+        }
+        return map;
     }
+
 
     public static void main(String[] args) {
-        FileSystemCache cache = new FileSystemCache(Paths.get("F:\\Downloads\\m3u8result"));
-        System.out.println(cache.exist(Paths.get("F:\\Downloads\\m3u8result\\平胸")));
-        System.out.println(cache.exist(Paths.get("F:\\Downloads\\m3u8result\\平胸\\video1.posh-hotels.com.8091-99920191228-5526id00046-A-1000kb-hls-.mp4")));
-        System.out.println(cache.exist(Paths.get("F:\\Downloads\\m3u8result\\平胸\\text.fadf")));
-        cache.add(Paths.get("F:\\Downloads\\m3u8result\\平胸\\text.fadf"));
-        System.out.println(cache.exist(Paths.get("F:\\Downloads\\m3u8result\\平胸\\text.fadf")));
+        FileSystemCache cache = new FileSystemCache("F:\\Downloads\\m3u8result");
+        System.out.println(cache.exist("F:\\Downloads\\m3u8result\\平胸"));
+        System.out.println(cache.exist("F:\\Downloads\\m3u8result\\平胸\\video1.posh-hotels.com.8091-99920191228-5526id00046-A-1000kb-hls-.mp4"));
+        System.out.println(cache.exist("F:\\Downloads\\m3u8result\\平胸\\text.fadf"));
+        cache.add("F:\\Downloads\\m3u8result\\平胸\\text.fadf");
+        System.out.println(cache.exist("F:\\Downloads\\m3u8result\\平胸\\text.fadf"));
+        System.out.println("a".replaceAll("a", "\\\\"));
     }
 }
