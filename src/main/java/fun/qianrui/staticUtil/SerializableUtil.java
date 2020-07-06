@@ -36,8 +36,8 @@ public class SerializableUtil {
         }
     }
 
-    public static byte[] zip(byte[] bytes, int level) {
-        Deflater deflater = new Deflater(level);
+    public static byte[] zip(byte[] bytes) {
+        Deflater deflater = DEFLATER9.get();
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             deflater.setInput(bytes);
             deflater.finish();
@@ -50,16 +50,12 @@ public class SerializableUtil {
         } catch (IOException e) {
             return ExceptionUtil.throwT(e);
         } finally {
-            deflater.end();
+            deflater.reset();
         }
     }
 
-    public static byte[] zip(byte[] bytes) {
-        return zip(bytes, 9);
-    }
-
     public static byte[] unZip(byte[] bytes) {
-        Inflater inflater = new Inflater();
+        final Inflater inflater = INFLATER.get();
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             inflater.setInput(bytes);
             byte[] buffer = new byte[1 << 20];
@@ -71,7 +67,10 @@ public class SerializableUtil {
         } catch (IOException | DataFormatException e) {
             return ExceptionUtil.throwT(e);
         } finally {
-            inflater.end();
+            inflater.reset();
         }
     }
+
+    private static final ThreadLocal<Inflater> INFLATER = ThreadLocal.withInitial(Inflater::new);
+    private static final ThreadLocal<Deflater> DEFLATER9 = ThreadLocal.withInitial(() -> new Deflater(9));
 }

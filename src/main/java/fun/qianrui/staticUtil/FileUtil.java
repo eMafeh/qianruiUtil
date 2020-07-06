@@ -63,7 +63,38 @@ public class FileUtil {
         }
     }
 
+    public static void write(String file, byte[] bytes, Runnable success) {
+        try {
+            File file0 = new File(file);
+            file0.getParentFile()
+                    .mkdirs();
+            RandomAccessFile rw = new RandomAccessFile(file0, "rw");
+            FileChannel channel = rw.getChannel();
+            MappedByteBuffer map = channel.map(FileChannel.MapMode.READ_WRITE, 0, bytes.length);
+            map.put(bytes);
+            success.run();
+        } catch (IOException e) {
+            ExceptionUtil.throwT(e);
+        }
+    }
+
     public static class Writer {
+        private static final LinkedBlockingQueue<Task> queue
+                = new LinkedBlockingQueue<>(Integer.parseInt(System.getProperty(
+                "fun.qianrui.staticUtil.FileUtil.Writer.queue.capacity", "3000")));
+
+        static {
+            ThreadUtil.createLoopThread("write file", () -> {
+                final Task take = queue.take();
+                write(take.file, take.bytes, take.success);
+            })
+                    .start();
+        }
+
+        public static void async(String file, byte[] bytes, Runnable success) throws InterruptedException {
+            queue.put(new Task(file, bytes, success));
+        }
+
         private static class Task {
             String file;
             byte[] bytes;
@@ -74,40 +105,7 @@ public class FileUtil {
                 this.bytes = bytes;
                 this.success = success;
             }
-
-            public void write() {
-                try {
-                    File file = new File(this.file);
-                    file.getParentFile()
-                            .mkdirs();
-                    RandomAccessFile rw = new RandomAccessFile(file, "rw");
-                    FileChannel channel = rw.getChannel();
-                    MappedByteBuffer map = channel.map(FileChannel.MapMode.READ_WRITE, 0, bytes.length);
-                    map.put(bytes);
-                    success.run();
-                } catch (IOException e) {
-                    ExceptionUtil.throwT(e);
-                }
-            }
         }
 
-        private static final LinkedBlockingQueue<Task> queue
-                = new LinkedBlockingQueue<>(Integer.parseInt(System.getProperty(
-                "fun.qianrui.staticUtil.FileUtil.Writer.queue.capacity", "3000")));
-
-        static {
-            ThreadUtil.createLoopThread("write file", () -> queue.take()
-                    .write())
-                    .start();
-        }
-
-        public static void async(String file, byte[] bytes, Runnable success) throws InterruptedException {
-            queue.put(new Task(file, bytes, success));
-        }
-
-        public static void now(String file, byte[] bytes) {
-            new Task(file, bytes, () -> {
-            }).write();
-        }
     }
 }

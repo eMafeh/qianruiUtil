@@ -25,17 +25,7 @@ public class FileSystemCache {
     public FileSystemCache(File root) {
         String tmp = root.toString();
         this.root = tmp.endsWith("\\") ? tmp : tmp + "\\";
-        long l = System.currentTimeMillis();
-        final int[] num = new int[1];
-        final Thread loopThread = ThreadUtil.createLoopThread("FileSystemCache handler: " + root, () -> {
-            Thread.sleep(3000);
-            System.out.println(num[0]);
-        });
-        loopThread.setDaemon(true);
-        loopThread.start();
-        num[0]++;
-        CACHE = file(root, num);
-        loopThread.interrupt();
+        CACHE = file(root);
     }
 
 
@@ -84,29 +74,16 @@ public class FileSystemCache {
         return false;
     }
 
-    private static ConcurrentHashMap<String, ConcurrentHashMap> file(File file, int[] num) {
+    private static ConcurrentHashMap<String, ConcurrentHashMap> file(File file) {
         final long l = System.currentTimeMillis();
         File[] files = file.listFiles();
-        System.out.println((System.currentTimeMillis() - l) + " " + file);
         final ConcurrentHashMap<String, ConcurrentHashMap> map = new ConcurrentHashMap<>();
         if (files == null) return map;
         for (File sub : files) {
-            num[0]++;
             final String name = sub.getName();
             final int i = name.lastIndexOf(".");
-            map.put(name, i < 0 || !FILE_ENDS.contains(name.substring(i + 1)) ? file(sub, num) : END);
+            map.put(name, i < 0 || !FILE_ENDS.contains(name.substring(i + 1)) ? file(sub) : END);
         }
         return map;
-    }
-
-
-    public static void main(String[] args) {
-        FileSystemCache cache = new FileSystemCache("F:\\Downloads\\m3u8result");
-        System.out.println(cache.exist("F:\\Downloads\\m3u8result\\平胸"));
-        System.out.println(cache.exist("F:\\Downloads\\m3u8result\\平胸\\video1.posh-hotels.com.8091-99920191228-5526id00046-A-1000kb-hls-.mp4"));
-        System.out.println(cache.exist("F:\\Downloads\\m3u8result\\平胸\\text.fadf"));
-        cache.add("F:\\Downloads\\m3u8result\\平胸\\text.fadf");
-        System.out.println(cache.exist("F:\\Downloads\\m3u8result\\平胸\\text.fadf"));
-        System.out.println("a".replaceAll("a", "\\\\"));
     }
 }
