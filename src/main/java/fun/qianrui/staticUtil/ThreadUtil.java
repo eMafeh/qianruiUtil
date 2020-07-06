@@ -14,8 +14,8 @@ public class ThreadUtil {
 
     public static Thread createThread(String name, RunnableCanException runnable) {
         return new Thread(GROUP, () -> {
-            System.out.println("thread is start\"" + Thread.currentThread()
-                    .getName() + "\" ");
+            System.out.println("thread is start(" + Thread.currentThread()
+                    .getName() + ")");
             final long start = System.currentTimeMillis();
             try {
                 runnable.run();
@@ -24,9 +24,9 @@ public class ThreadUtil {
             } catch (Exception e) {
                 ExceptionUtil.throwT(e);
             } finally {
-                System.out.println("thread is end\"" + Thread.currentThread()
-                        .getName() + "\" " + DateUtil.format("yyyy-MM-dd HH:mm", start)
-                        + "-" + DateUtil.format("yyyy-MM-dd HH:mm", System.currentTimeMillis()));
+                System.out.println("thread is end (" + Thread.currentThread()
+                        .getName() + ")" + DateUtil.format("yyyyMMdd HH:mm:ss", start)
+                        + " to " + DateUtil.format("yyyyMMdd HH:mm:ss", System.currentTimeMillis()));
             }
         }, name, 0);
     }
