@@ -1,5 +1,6 @@
-package fun.qianrui.staticUtil;
+package fun.qianrui.staticUtil.computer;
 
+import  fun.qianrui.staticUtil.sys.ExceptionUtil;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;

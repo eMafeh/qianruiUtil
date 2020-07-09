@@ -1,4 +1,4 @@
-package fun.qianrui.staticUtil;
+package fun.qianrui.staticUtil.file;
 
 import java.io.File;
 import java.io.IOException;

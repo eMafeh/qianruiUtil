@@ -1,4 +1,4 @@
-package fun.qianrui.staticUtil;
+package fun.qianrui.staticUtil.sys;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;

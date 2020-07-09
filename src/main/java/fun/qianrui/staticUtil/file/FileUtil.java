@@ -1,4 +1,7 @@
-package fun.qianrui.staticUtil;
+package fun.qianrui.staticUtil.file;
+
+import fun.qianrui.staticUtil.sys.ExceptionUtil;
+import fun.qianrui.staticUtil.sys.ThreadUtil;
 
 import java.io.*;
 import java.nio.MappedByteBuffer;
@@ -34,6 +37,11 @@ public class FileUtil {
         }
     }
 
+    public static ArrayList<String> readAllLines(File f) {
+        final byte[] bytes = readAllBytes(f);
+        return readAllLines(bytes);
+    }
+
     public static ArrayList<String> readAllLines(String file) {
         final byte[] bytes = readAllBytes(file);
         return readAllLines(bytes);
@@ -49,6 +57,7 @@ public class FileUtil {
             RandomAccessFile rw = new RandomAccessFile(f, "r");
             FileChannel channel = rw.getChannel();
             MappedByteBuffer map = channel.map(FileChannel.MapMode.READ_ONLY, 0, bytes.length);
+            map.load();
             map.get(bytes);
             return bytes;
         } catch (IOException e) {
@@ -56,32 +65,29 @@ public class FileUtil {
         }
     }
 
-    public static void main(String[] args) {
-        final ArrayList<String> strings = readAllLines("F:\\Downloads\\m3u8\\video2.feimanzb.com.8091\\20180420\\AEG0TKO012\\650kb\\hls\\index.m3u8");
-        for (String string : strings) {
-            System.out.println(string);
-        }
+    public static void write(String file, byte[] bytes, Runnable success) {
+        final MappedByteBuffer write = write(file, bytes.length);
+        write.put(bytes);
+        success.run();
     }
 
-    public static void write(String file, byte[] bytes, Runnable success) {
+    public static MappedByteBuffer write(String file, long length) {
         try {
             File file0 = new File(file);
             file0.getParentFile()
                     .mkdirs();
             RandomAccessFile rw = new RandomAccessFile(file0, "rw");
             FileChannel channel = rw.getChannel();
-            MappedByteBuffer map = channel.map(FileChannel.MapMode.READ_WRITE, 0, bytes.length);
-            map.put(bytes);
-            success.run();
+            return channel.map(FileChannel.MapMode.READ_WRITE, 0, length);
         } catch (IOException e) {
-            ExceptionUtil.throwT(e);
+            return ExceptionUtil.throwT(e);
         }
     }
 
     public static class Writer {
         private static final LinkedBlockingQueue<Task> queue
                 = new LinkedBlockingQueue<>(Integer.parseInt(System.getProperty(
-                "fun.qianrui.staticUtil.FileUtil.Writer.queue.capacity", "3000")));
+                "fun.qianrui.staticUtil.file.FileUtil.Writer.queue.capacity", "3000")));
 
         static {
             ThreadUtil.createLoopThread("write file", () -> {

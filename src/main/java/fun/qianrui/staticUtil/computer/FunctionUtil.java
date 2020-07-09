@@ -1,4 +1,4 @@
-package fun.qianrui.staticUtil;
+package fun.qianrui.staticUtil.computer;
 
 public class FunctionUtil {
     public static <T> T self(T t) {

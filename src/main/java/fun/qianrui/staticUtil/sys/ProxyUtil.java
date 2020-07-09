@@ -1,4 +1,6 @@
-package fun.qianrui.staticUtil;
+package fun.qianrui.staticUtil.sys;
+
+import fun.qianrui.staticUtil.sys.ExceptionUtil;
 
 import java.lang.reflect.Field;
 

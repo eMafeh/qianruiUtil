@@ -1,4 +1,4 @@
-package fun.qianrui.staticUtil;
+package fun.qianrui.staticUtil.sys;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;

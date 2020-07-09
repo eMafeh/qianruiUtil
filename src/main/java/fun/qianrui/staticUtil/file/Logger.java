@@ -1,28 +1,32 @@
-package fun.qianrui.staticUtil;
+package fun.qianrui.staticUtil.file;
 
 
 import fun.qianrui.staticUtil.data.ByteList;
+import fun.qianrui.staticUtil.sys.ExceptionUtil;
 
 import java.io.File;
 import java.io.RandomAccessFile;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
-import java.util.Spliterator;
-import java.util.Spliterators;
+import java.util.*;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public class Logger {
-    private static final int size = 1 << 27;
+    private static final int SIZE = 1 << 27;
+    private final int size;
     private final String rootStr;
     private MappedByteBuffer map;
     private int nowIndex;
     private long length;
 
     public Logger(String dir) {
-        rootStr = dir.endsWith("\\") ? dir : dir + "\\";
+        this(dir, SIZE);
+    }
+
+    public Logger(String dir, int size) {
+        this.rootStr = dir.endsWith("\\") ? dir : dir + "\\";
+        this.size = size;
         File root = new File(rootStr);
         if (!root.exists()) root.mkdirs();
         final String[] files = root.list();
@@ -52,7 +56,7 @@ public class Logger {
     }
 
     public Stream<String> logStream() {
-        return StreamSupport.stream(Spliterators.spliteratorUnknownSize(new LogStream(rootStr),
+        return StreamSupport.stream(Spliterators.spliteratorUnknownSize(new LogStream(),
                 Spliterator.ORDERED | Spliterator.IMMUTABLE | Spliterator.NONNULL), false);
     }
 
@@ -67,34 +71,32 @@ public class Logger {
         map.position(i);
     }
 
-    private static class LogStream implements Iterator<String> {
-        private final String rootStr;
+    private class LogStream implements Iterator<String> {
         private MappedByteBuffer map;
-        private int index = 0;
-        private int length;
+        private int _index;
+        private int _length;
 
-        public LogStream(String rootStr) {
-            this.rootStr = rootStr;
+        public LogStream() {
             updateMmap();
         }
 
         private void updateMmap() {
-            index++;
-            final File file = new File(rootStr + index + ".log");
+            _index++;
+            final File file = new File(rootStr + _index + ".log");
             map = !file.exists() ? null :
                     ExceptionUtil.throwT(() -> new RandomAccessFile(file, "r").getChannel()
                             .map(FileChannel.MapMode.READ_ONLY, 0, size));
             if (map != null) {
                 int i = 0;
                 for (; i < size; i++) if (map.get() == 0) break;
-                length = i;
+                _length = i;
                 map.rewind();
             }
         }
 
         @Override
         public boolean hasNext() {
-            return map != null && length > map.position();
+            return map != null && _length > map.position();
         }
 
         @Override
@@ -102,27 +104,15 @@ public class Logger {
             if (!hasNext()) throw new NoSuchElementException();
             final ByteList byteList = new ByteList();
             while (true) {
-                if (map.position() == length) {
-                    updateMmap();
-                    break;
-                }
+                if (map.position() == _length) break;
                 final byte b = map.get();
                 if (b == '\n') break;
                 byteList.add(b);
             }
+            if (map.position() == _length) {
+                updateMmap();
+            }
             return new String(byteList.toArray());
         }
-    }
-
-    public static void main(String[] args) {
-        final Logger logger = new Logger("F:\\Downloads\\log\\ts");
-        logger.put("你好啊");
-        logger.put("");
-        logger.put("啊哈哈 嘿嘿");
-        logger.put("这 课 还 行 哎呦");
-        logger.put("");
-        logger.put("你好啊\n啊哈哈 嘿嘿");
-        logger.logStream()
-                .forEach(System.out::println);
     }
 }
