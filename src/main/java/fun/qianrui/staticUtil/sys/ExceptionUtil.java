@@ -1,7 +1,8 @@
 package fun.qianrui.staticUtil.sys;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
+
+import java.io.*;
+import java.util.Arrays;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -52,5 +53,32 @@ public class ExceptionUtil {
             e.printStackTrace(new PrintStream(out));
             consumer.accept(out.toString());
         }
+    }
+
+    public static StreamTokenizer in = new StreamTokenizer(new BufferedReader(new InputStreamReader(System.in)));
+
+    public static void main(String[] args) throws Exception {
+        in.nextToken();
+        int l = (int) in.nval;
+        in.nextToken();
+        int[] m = new int[2 * (int) in.nval];
+        for (int i = 0; i < m.length; i++) {
+            in.nextToken();
+            m[i] = 2 * (int) in.nval + i % 2;
+        }
+        Arrays.sort(m);
+        int result = 0, count = 0, end = -1;
+        for (int i : m) {
+            int r = i / 2;
+            if (r > l) break;
+            if (i % 2 == 0) {
+                if (count == 0) result += r - end - 1;
+                count++;
+            } else {
+                count--;
+                end = r;
+            }
+        }
+        System.out.print(count == 0 ? Math.max(result, result + l - end) : result);
     }
 }

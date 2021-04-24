@@ -1,7 +1,9 @@
 package fun.qianrui.staticUtil.file;
 
+import java.io.File;
+
 public class LoggerTest {
-    static final Logger logger = new Logger("F:\\Downloads\\log\\ts");
+    static final Logger logger = new Logger("F:\\Downloads\\log\\ts", Logger.MAX);
 
     @org.testng.annotations.Test
     public void testPut() {
@@ -11,11 +13,6 @@ public class LoggerTest {
         logger.put("这 课 还 行 哎呦");
         logger.put("");
         logger.put("你好啊\n啊哈哈 嘿嘿");
-    }
-
-    @org.testng.annotations.Test
-    public void testLogSize() {
-        System.out.println(logger.logSize());
     }
 
     @org.testng.annotations.Test

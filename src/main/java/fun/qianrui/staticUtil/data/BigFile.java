@@ -6,11 +6,7 @@ import fun.qianrui.staticUtil.sys.ExceptionUtil;
 import java.io.RandomAccessFile;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.LongAdder;
+import java.util.*;
 
 public class BigFile {
     public final String file;
@@ -19,25 +15,24 @@ public class BigFile {
     private final Logger logger;
     private final HashMap<String, long[]> cache = new HashMap<>();
     private volatile long length;
-    private final LongAdder size = new LongAdder();
 
-    public BigFile(String file, int possibleSize, long possibleOneLength) {
+    public BigFile(String file, long posSize) {
         System.out.println("BigFile create:" + file);
-        long possibleLength = possibleSize * possibleOneLength;
         this.file = file;
-        this.logger = new Logger(file + "log\\", possibleSize * 100);
+        this.logger = new Logger(file + "map");
         logger.logStream()
-                .map(l -> l.split(" "))
                 .forEach(l -> {
-                    final long pos = Long.parseLong(l[1]);
-                    final long size = Long.parseLong(l[2]);
-                    this.cache.put(l[0], new long[]{pos, size});
+                    final int i1 = l.lastIndexOf(' ');
+                    final int i2 = l.lastIndexOf(' ', i1 - 1);
+                    final long pos = Long.parseLong(l.substring(i2 + 1, i1));
+                    final long size = Long.parseLong(l.substring(i1 + 1));
+                    final String name = l.substring(0, i2);
+                    this.cache.put(name, new long[]{pos, size});
                     this.length = pos + size;
-                    this.size.increment();
                 });
         rw = ExceptionUtil.throwT(() -> new RandomAccessFile(file, "rw"));
         try {
-            if (length == 0) rw.setLength(possibleLength);
+            if (posSize > length) rw.setLength(posSize);
         } catch (Exception e) {
             ExceptionUtil.throwT(e);
         }
@@ -51,7 +46,6 @@ public class BigFile {
         logger.put(name + " " + length + " " + data.length);
         cache.put(name, new long[]{length, data.length});
         length += data.length;
-        this.size.increment();
         return true;
     }
 
@@ -69,9 +63,10 @@ public class BigFile {
         return cache.get(name) != null;
     }
 
-    private static final int MAX_READ_SIZE = 500_000_000;
+    private static final int MAX_READ_SIZE = 1_500_000_000;
 
     public synchronized HashMap<String, byte[]> getAll() {
+        final long begin = System.currentTimeMillis();
         final List<byte[]> allData = getAllData();
         final HashMap<String, byte[]> result = new HashMap<>();
         cache.forEach((key, longs) -> {
@@ -101,6 +96,7 @@ public class BigFile {
             }
             result.put(key, bytes);
         });
+        System.out.println(file + " getAll result.size():" + result.size() + " time:" + (System.currentTimeMillis() - begin));
         return result;
     }
 
@@ -130,7 +126,7 @@ public class BigFile {
     }
 
     public synchronized int getSize() {
-        return size.intValue();
+        return cache.size();
     }
 
     public synchronized long getLength() {
