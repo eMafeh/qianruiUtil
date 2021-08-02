@@ -8,10 +8,51 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class FileUtil {
+
+    /**
+     * @param file dir or singleFile
+     * @return <parentDir,subFile>
+     */
+    public static Map<File, List<File>> getAllFiles(File file) {
+        final long begin = System.currentTimeMillis();
+        Map<File, List<File>> map = new HashMap<>();
+        // check only once
+        if (file != null && file.exists()) {
+            if (file.isFile()) {
+                map.put(null, Collections.singletonList(file));
+            } else {
+                getAllFiles(file, map);
+            }
+        }
+        System.out.println(file + " dir :" + map.size() + " file:" + map.values()
+                .stream()
+                .mapToInt(List::size)
+                .sum() + " time:" + (System.currentTimeMillis() - begin));
+        return map;
+    }
+
+    private static void getAllFiles(File file, Map<File, List<File>> map) {
+        File[] listFiles = file.listFiles();
+        if (listFiles == null) {
+            return;
+        }
+        List<File> subs = new ArrayList<>(listFiles.length);
+        for (File sub : listFiles) {
+            if (sub.isFile()) {
+                subs.add(sub);
+            } else {
+                getAllFiles(sub, map);
+            }
+        }
+        if (subs.size() > 0) {
+            map.put(file, subs);
+        }
+    }
+
     public static String goodPath(String name) {
         return name.replaceAll("[\t\\\\/:*?\"<>| ]", "");
     }

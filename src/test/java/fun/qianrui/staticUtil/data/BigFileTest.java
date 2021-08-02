@@ -1,12 +1,7 @@
 package fun.qianrui.staticUtil.data;
 
 
-import fun.qianrui.staticUtil.sys.ExceptionUtil;
-
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.util.HashMap;
 import java.util.List;
 
@@ -23,7 +18,7 @@ public class BigFileTest {
             all.forEach((k, v) -> System.out.println(k + " " + new String(v)));
         }
         {
-            final BigFile bigFile = new BigFile("F:\\Downloads\\m3u8\\testBig\\test", 3 * 20);
+            final BigFile bigFile = new BigFile("F:\\Downloads\\testBig\\test", 3 * 20);
             bigFile.put("6", "二次运行怕不怕".getBytes());
             final HashMap<String, byte[]> all = bigFile.getAll();
             all.forEach((k, v) -> System.out.println(k + " " + new String(v)));
